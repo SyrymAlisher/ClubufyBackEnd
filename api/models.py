@@ -5,7 +5,7 @@ class Category(models.Model):
 
 class Club(models.Model):
     name = models.CharField(max_length=30)
-    img = models.CharField(max_length=30)
+    img = models.CharField(max_length=300)
     text = models.TextField()
     desc = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE, blank=True, null=True)
