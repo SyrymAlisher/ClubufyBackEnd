@@ -5,8 +5,10 @@ from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api.serializers import CategorySerializer, ClubSerializer
-from api.models import Category, Club
+from api.serializers import CategorySerializer, ClubSerializer, ManagerSerializer, EnrollmentSerializer
+from api.models import Category, Club, Manager, Enrollment
+
+from rest_framework.permissions import IsAuthenticated
 
 def first(request):
     return JsonResponse({"hello": "first view message"}, safe=False)
@@ -52,13 +54,15 @@ def clubs(request):
 
     elif request.method == 'POST':
         try:
-            category = Category.objects.get(id=request.data['category_id'])
+            category = Category.objects.get(name=request.data['category2'])
+            author = Manager.objects.get(username=request.data['author2'])
             Club.objects.create(
                 name = request.data['name'],
                 img = request.data['img'],
                 text = request.data['text'],
                 desc = request.data['desc'],
-                category = category
+                category = category,
+                author = author
             )
             return JsonResponse({"succ": "created club"}, safe=False)
         except:
@@ -67,6 +71,7 @@ def clubs(request):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def club(request, id):
+    permission_classes = (IsAuthenticated,)
     try:
         club = Club.objects.get(id=id)
     except:
@@ -78,7 +83,8 @@ def club(request, id):
     
     elif request.method == 'PUT':
         try:
-            category = Category.objects.get(id=request.data['category_id'])
+            category = Category.objects.get(name=request.data['category2'])
+            author = Manager.objects.get(username=request.data['author2'])
         except:
             return JsonResponse({'error': 'cant get that categry'}, safe=False)
         
@@ -87,9 +93,33 @@ def club(request, id):
         club.text = request.data['text']
         club.desc = request.data['desc']
         club.category = category
+        club.author = author
         club.save()
         return JsonResponse({'success': 'update club successfully'}, safe=False)
     
     elif request.method == 'DELETE':
         club.delete()
         return JsonResponse({'eror': 'deleted'}, safe=False)
+
+class EnrollmentView(APIView):
+    def post(self, request):
+        try:
+            club = Club.objects.get(id=request.data['club_id'])
+        except:
+            return JsonResponse({'errior': 'cant get club'}, safe=False)
+
+        Enrollment.objects.create(
+            name = request.data['name'],
+            phone = request.data['phone'],
+            club = club
+        )
+
+        return JsonResponse({"success": "enrolled"}, safe=False)
+
+    def get(self, request):
+        try:
+            enrolls = Enrollment.objects.all()
+            serializer = EnrollmentSerializer(enrolls, many=True)
+            return JsonResponse(serializer.data, safe=False)
+        except:
+            return JsonResponse(serializer.errors, safe=False)
